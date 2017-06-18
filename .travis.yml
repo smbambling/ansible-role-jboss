@@ -1,17 +1,49 @@
 ---
 sudo: required
 language: python
+python:
+  - '2.7'
+
+# Spin off separate builds for each of the following versions of Ansible
+env:
+  global:
+    - MOLECULE_VERSION='1.25.0'
+    - DOCKER_VERSION='latest'
+    - PYTHON_DOCKER_VERSION='2.2.1'
+    - TESTINFRA_VERSION='1.6.3'
+  matrix:
+    - ANSIBLE_VERSION='latest'
+    #- ANSIBLE_VERSION='2.3.0'
+    #- ANSIBLE_VERSION='2.2.0'
+    #- ANSIBLE_VERSION='2.1.0'
+
 services:
   - docker
+
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y docker-engine
+  - if [ "$DOCKER_VERSION" = "latest" ]; then
+      sudo apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y docker-engine;
+    else
+      sudo apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y docker-engine=$DOCKER_VERSION;
+    fi
+  - docker --version
+
 install:
-  - pip install git+https://github.com/jairojunior/ansible.git
-  - pip install molecule
-  - pip install docker
-  - pip install testinfra --upgrade
+  - pip install --upgrade pip
+  - if [ "$ANSIBLE_VERSION" = "latest" ]; then
+      pip install ansible;
+    else
+      pip install ansible==$ANSIBLE_VERSION;
+    fi
+  - ansible --version
+  - pip install molecule==$MOLECULE_VERSION
+  - molecule --version
+  - pip install docker==$PYTHON_DOCKER_VERSION
+  - pip install testinfra==$TESTINFRA_VERSION
+  - testinfra --version
+
 script:
   # testinfra does not work with ansible 2.4
   # - molecule test --driver docker
-  - molecule converge --driver docker
+  - molecule converge
